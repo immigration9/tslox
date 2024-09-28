@@ -79,6 +79,10 @@ export class Scanner {
          */
         this.line++;
         break;
+      case '"': {
+        this.string()
+        break;
+      }
 
       default: Lox.error(this.line, "Unexpected character."); break;
     }
@@ -124,5 +128,24 @@ export class Scanner {
 
     this.current++;
     return true;
+  }
+
+  private string() {
+    while (this.peek() !== '"' && !this.isAtEnd()) {
+      if (this.peek() === "\n") this.line++;
+      this.advance();
+    }
+
+    if (this.isAtEnd()) {
+      Lox.error(this.line, "Unterminated string.");
+      return;
+    }
+
+    // 닫는 " 글자에 대한 대응
+    this.advance();
+
+    // 양쪽에 있는 " 를 제외하고 토큰을 발행한다
+    const value = this.source.substring(this.start + 1, this.current - 1);
+    this.addToken(TT.STRING, value);
   }
 }

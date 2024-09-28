@@ -1,3 +1,7 @@
 // this is a comment
 (( )){} // grouping stuff
 !*+-/=<> <= == // operators
+"THIS IS A NEW STRING"
+"THIS IS A 
+MULTILINE
+STRING"
