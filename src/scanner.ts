@@ -83,8 +83,13 @@ export class Scanner {
         this.string()
         break;
       }
-
-      default: Lox.error(this.line, "Unexpected character."); break;
+      default: {
+        if (this.isDigit(c)) {
+          this.number();
+        } else {
+          Lox.error(this.line, "Unexpected character."); break;
+        }
+      }
     }
   }
 
@@ -112,6 +117,15 @@ export class Scanner {
   private peek() {
     if (this.isAtEnd()) return "\0";
     return this.source.charAt(this.current);
+  }
+
+  /**
+   * . 뒤에 오는 최소 하나 이상의 숫자를 처리해야 하기 때문에
+   * 현재 커서 이후의 글자를 피킹할 수 있는 메서드를 만들었다.
+   */
+  private peekNext() {
+    if (this.current + 1 >= this.source.length) return "\0";
+    return this.source.charAt(this.current + 1);
   }
 
   /**
@@ -147,5 +161,32 @@ export class Scanner {
     // 양쪽에 있는 " 를 제외하고 토큰을 발행한다
     const value = this.source.substring(this.start + 1, this.current - 1);
     this.addToken(TT.STRING, value);
+  }
+
+  private isDigit(c: string) {
+    return c >= "0" && c <= "9";
+  }
+
+  private number() {
+    /**
+     * 정수부를 찾는다
+     */
+    while (this.isDigit(this.peek())) this.advance();
+
+    /**
+     * 소수부를 찾는다
+     */
+    if (this.peek() === "." && this.isDigit(this.peekNext())) {
+      // . 글자를 처리한다
+      this.advance();
+
+      // 소수 부분을 처리한다
+      while (this.isDigit(this.peek())) this.advance();
+    }
+
+    this.addToken(
+      TT.NUMBER,
+      Number.parseFloat(this.source.substring(this.start, this.current))
+    );
   }
 }
