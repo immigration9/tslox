@@ -9,3 +9,9 @@ STRING"
 23
 45 56
 777.111
+var something = "hello world"
+var value = 3 or 5
+print value
+while (value) {
+  return something
+}

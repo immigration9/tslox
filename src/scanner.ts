@@ -1,5 +1,25 @@
 import { Lox } from "./main";
-import { Token, TokenType as TT } from "./token";
+import { Token, TokenType, TokenType as TT } from "./token";
+
+const keywords = new Map<string, TokenType>();
+{
+  keywords.set("and", TT.AND);
+  keywords.set("class", TT.CLASS);
+  keywords.set("else", TT.ELSE);
+  keywords.set("false", TT.FALSE);
+  keywords.set("for", TT.FOR);
+  keywords.set("fun", TT.FUN);
+  keywords.set("if", TT.IF);
+  keywords.set("nil", TT.NIL);
+  keywords.set("or", TT.OR);
+  keywords.set("print", TT.PRINT);
+  keywords.set("return", TT.RETURN);
+  keywords.set("super", TT.SUPER);
+  keywords.set("this", TT.THIS);
+  keywords.set("true", TT.TRUE);
+  keywords.set("var", TT.VAR);
+  keywords.set("while", TT.WHILE);
+}
 
 export class Scanner {
   private tokens: Token[];
@@ -83,9 +103,22 @@ export class Scanner {
         this.string()
         break;
       }
+      case 'o': {
+        /**
+         * Keyword 'or'를 처리한다
+         * 
+         * 하지만 만약에 유저가 변수명을 `orchid`로 지으면 어떻게 될 것인가?
+         */
+        if (this.match('r')) {
+          this.addToken(TT.OR);
+        }
+        break;
+      }
       default: {
         if (this.isDigit(c)) {
           this.number();
+        } else if (this.isAlpha(c)) {
+          this.identifier();
         } else {
           Lox.error(this.line, "Unexpected character."); break;
         }
@@ -188,5 +221,23 @@ export class Scanner {
       TT.NUMBER,
       Number.parseFloat(this.source.substring(this.start, this.current))
     );
+  }
+
+  private identifier() {
+    while (this.isAlphaNumeric(this.peek())) this.advance();
+    const text = this.source.substring(this.start, this.current);
+
+    this.addToken(keywords.get(text) ?? TT.IDENTIFIER);
+  }
+
+  private isAlpha(c: string) {
+    // prettier-ignore
+    return (c >= "a" && c <= "z") || 
+           (c >= "A" && c <= "Z") || 
+            c == "-";
+  }
+
+  private isAlphaNumeric(c: string) {
+    return this.isAlpha(c) || this.isDigit(c);
   }
 }
