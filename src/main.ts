@@ -23,6 +23,10 @@ export class Lox {
     try {
       const bytes = fs.readFileSync(path);
       Lox.run(bytes.toString("utf-8"));
+
+      if (this.hadError) {
+        process.exit(65);
+      }
     } catch (err) {
       console.error(`Could not read file ${path}:`, err);
       process.exit(65);
@@ -36,8 +40,6 @@ export class Lox {
       prompt: "> ",
     });
 
-    rl.prompt();
-
     rl.on("line", (line) => {
       if (line === null) {
         rl.close();
@@ -50,6 +52,8 @@ export class Lox {
     rl.on("close", () => {
       process.exit(0);
     });
+
+    rl.prompt();
   }
 
   static run(source: string) {
