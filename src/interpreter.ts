@@ -1,0 +1,125 @@
+import { RuntimeError } from "./errors";
+import {
+  Visitor,
+  LoxValue,
+  Binary,
+  Grouping,
+  Literal,
+  Unary,
+  Expr,
+} from "./expr";
+import { Lox } from "./main";
+import { Token, TokenType } from "./token";
+
+function isTruthy(value: LoxValue): boolean {
+  if (value === null) return false;
+  if (value === false) return false;
+  return true;
+}
+
+function checkNumberOperand(
+  operator: Token,
+  operand: LoxValue
+): asserts operand is number {
+  if (typeof operand === "number") return;
+  throw new RuntimeError(operator, "Operand must be a number.");
+}
+
+function stringify(value: LoxValue): string {
+  if (value === null) return "nil";
+  return value.toString();
+}
+
+export class Interpreter implements Visitor<LoxValue> {
+  visitBinary(expr: Binary): LoxValue {
+    const left = this.evaluate(expr.left);
+    const right = this.evaluate(expr.right);
+
+    switch (expr.operator.type) {
+      case TokenType.MINUS:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left - right;
+      case TokenType.SLASH:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left / right;
+      case TokenType.STAR:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left * right;
+      case TokenType.PLUS:
+        if (typeof left === "number" && typeof right === "number") {
+          return left + right;
+        }
+        if (typeof left === "string" && typeof right === "string") {
+          return left + right;
+        }
+        throw new RuntimeError(
+          expr.operator,
+          "Operands must be two numbers or two strings."
+        );
+      case TokenType.GREATER:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left > right;
+      case TokenType.GREATER_EQUAL:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left >= right;
+      case TokenType.LESS:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left < right;
+      case TokenType.LESS_EQUAL:
+        checkNumberOperand(expr.operator, left);
+        checkNumberOperand(expr.operator, right);
+        return left <= right;
+      case TokenType.BANG_EQUAL:
+        return left !== right;
+      case TokenType.EQUAL_EQUAL:
+        return left === right;
+    }
+
+    return null;
+  }
+
+  visitGrouping(expr: Grouping): LoxValue {
+    return this.evaluate(expr.expression);
+  }
+
+  visitLiteral(expr: Literal): LoxValue {
+    return expr.value;
+  }
+
+  visitUnary(expr: Unary): LoxValue {
+    const right = this.evaluate(expr.right);
+    switch (expr.operator.type) {
+      case TokenType.MINUS:
+        checkNumberOperand(expr.operator, right);
+        return -right;
+      case TokenType.BANG:
+        return isTruthy(right);
+    }
+
+    return null;
+  }
+
+  interpret(expr: Expr): void {
+    try {
+      const value = this.evaluate(expr);
+      console.log("================");
+      console.log(stringify(value));
+    } catch (error) {
+      if (error instanceof RuntimeError) {
+        Lox.runtimeError(error);
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  private evaluate(expr: Expr): LoxValue {
+    return expr.accept(this);
+  }
+}

@@ -1,0 +1,202 @@
+// parser.ts
+// Recursive-descent Pratt-style parser for the "Lox" language,
+// ported to TypeScript from Chapter 6 “Parsing Expressions” of
+// Crafting Interpreters.
+//
+// This parser only handles expressions; statement parsing
+// will be added later.
+// It assumes the following supporting types exist:
+//
+//   - enum TokenType  (LEFT_PAREN, RIGHT_PAREN, BANG, BANG_EQUAL,
+//                      EQUAL, EQUAL_EQUAL, GREATER, GREATER_EQUAL,
+//                      LESS, LESS_EQUAL, PLUS, MINUS, STAR, SLASH,
+//                      IDENTIFIER, STRING, NUMBER, TRUE, FALSE, NIL,
+//                      EOF, etc.)
+//
+//   - class Token { lexeme: string; type: TokenType; literal: any; line: number }
+//
+//   - Expression hierarchy generated using the Visitor pattern
+//     (classes Binary, Unary, Grouping, Literal, Expr)
+//
+// Feel free to tweak the imports to match your project layout.
+import { Token, TokenType } from "./token";
+import * as Expr from "./expr";
+
+/**
+ * Parser converts a linear sequence of tokens
+ * into an abstract syntax tree (AST).
+ */
+export class Parser {
+  private current = 0;
+
+  constructor(private readonly tokens: Token[]) {}
+
+  /**
+   * Entry point for callers.
+   * Throws ParseError on any syntax error.
+   */
+  public parse(): Expr.Expr {
+    try {
+      return this.expression();
+    } catch (error) {
+      if (error instanceof ParseError) throw error;
+      throw new ParseError("Unknown parsing error.");
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Grammar (lowest → highest precedence):
+  //
+  // expression     → equality ;
+  // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+  // comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
+  // addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
+  // multiplication → unary ( ( "/" | "*" ) unary )* ;
+  // unary          → ( "!" | "-" ) unary
+  //                | primary ;
+  // primary        → NUMBER | STRING | "true" | "false" | "nil"
+  //                | "(" expression ")" ;
+  // ──────────────────────────────────────────────────────────
+
+  private expression(): Expr.Expr {
+    return this.equality();
+  }
+
+  private equality(): Expr.Expr {
+    let expr = this.comparison();
+
+    while (this.match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)) {
+      const operator = this.previous();
+      const right = this.comparison();
+      expr = new Expr.Binary(expr, operator, right);
+    }
+    return expr;
+  }
+
+  private comparison(): Expr.Expr {
+    let expr = this.addition();
+
+    while (
+      this.match(
+        TokenType.GREATER,
+        TokenType.GREATER_EQUAL,
+        TokenType.LESS,
+        TokenType.LESS_EQUAL
+      )
+    ) {
+      const operator = this.previous();
+      const right = this.addition();
+      expr = new Expr.Binary(expr, operator, right);
+    }
+    return expr;
+  }
+
+  private addition(): Expr.Expr {
+    let expr = this.multiplication();
+
+    while (this.match(TokenType.MINUS, TokenType.PLUS)) {
+      const operator = this.previous();
+      const right = this.multiplication();
+      expr = new Expr.Binary(expr, operator, right);
+    }
+    return expr;
+  }
+
+  private multiplication(): Expr.Expr {
+    let expr = this.unary();
+
+    while (this.match(TokenType.SLASH, TokenType.STAR)) {
+      const operator = this.previous();
+      const right = this.unary();
+      expr = new Expr.Binary(expr, operator, right);
+    }
+    return expr;
+  }
+
+  private unary(): Expr.Expr {
+    if (this.match(TokenType.BANG, TokenType.MINUS)) {
+      const operator = this.previous();
+      const right = this.unary();
+      return new Expr.Unary(operator, right);
+    }
+    return this.primary();
+  }
+
+  private primary(): Expr.Expr {
+    if (this.match(TokenType.FALSE)) return new Expr.Literal(false);
+    if (this.match(TokenType.TRUE)) return new Expr.Literal(true);
+    if (this.match(TokenType.NIL)) return new Expr.Literal(null);
+
+    if (this.match(TokenType.NUMBER, TokenType.STRING)) {
+      return new Expr.Literal(this.previous().literal);
+    }
+
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const expr = this.expression();
+      this.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.");
+      return new Expr.Grouping(expr);
+    }
+
+    throw this.error(this.peek(), "Expect expression.");
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Helper utilities
+  // ──────────────────────────────────────────────────────────
+  private match(...types: TokenType[]): boolean {
+    for (const type of types) {
+      if (this.check(type)) {
+        this.advance();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private consume(type: TokenType, message: string): Token {
+    if (this.check(type)) return this.advance();
+    throw this.error(this.peek(), message);
+  }
+
+  private check(type: TokenType): boolean {
+    if (this.isAtEnd()) return false;
+    return this.peek().type === type;
+  }
+
+  private advance(): Token {
+    if (!this.isAtEnd()) this.current++;
+    return this.previous();
+  }
+
+  private isAtEnd(): boolean {
+    return this.peek().type === TokenType.EOF;
+  }
+
+  private peek(): Token {
+    return this.tokens[this.current];
+  }
+
+  private previous(): Token {
+    return this.tokens[this.current - 1];
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Error handling & synchronisation
+  // ──────────────────────────────────────────────────────────
+  private error(token: Token, message: string): ParseError {
+    // Forward error to the caller; could hook into reporter here.
+    return new ParseError(
+      `[line ${token.line}] Error at '${token.lexeme}': ${message}`
+    );
+  }
+}
+
+/**
+ * Simple wrapper to distinguish parse errors from other runtime errors.
+ */
+export class ParseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ParseError";
+  }
+}

@@ -1,3 +1,5 @@
+import { LoxValue } from "./expr";
+
 export enum TokenType {
   // Single-character tokens.
   LEFT_PAREN = "LEFT_PAREN",
@@ -50,10 +52,10 @@ export enum TokenType {
 
 export class Token {
   constructor(
-    protected type: TokenType,
-    protected lexeme: string,
-    protected literal: unknown,
-    protected line: number
+    public type: TokenType,
+    public lexeme: string,
+    public literal: LoxValue,
+    public line: number
   ) {}
 
   toString() {

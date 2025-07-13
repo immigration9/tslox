@@ -2,9 +2,13 @@ import * as fs from "node:fs";
 import * as readline from "node:readline";
 import { stdin as input, stdout as output } from "node:process";
 import { Scanner } from "./scanner";
+import { RuntimeError } from "./errors";
+import { Parser } from "./parser";
+import { Interpreter } from "./interpreter";
 
 export class Lox {
   static hadError: boolean = false;
+  static hadRuntimeError: boolean = false;
 
   static main(): void {
     const args = process.argv.slice(2);
@@ -63,6 +67,12 @@ export class Lox {
     for (const token of tokens) {
       console.log(token);
     }
+
+    const parser = new Parser(tokens);
+    const statements = parser.parse();
+
+    const interpreter = new Interpreter();
+    interpreter.interpret(statements);
   }
 
   static error(line: number, message: string) {
@@ -72,6 +82,11 @@ export class Lox {
   static report(line: number, where: string, message: string) {
     console.error(`[line ${line}] Error ${where}: ${message}`);
     this.hadError = true;
+  }
+
+  static runtimeError(error: RuntimeError): void {
+    console.error(`${error.message}\n[line ${error.token.line}]`);
+    this.hadRuntimeError = true;
   }
 }
 
