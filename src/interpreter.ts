@@ -8,6 +8,7 @@ import {
   Unary,
   Expr,
 } from "./expr";
+import { StmtVisitor, Stmt, ExpressionStmt, PrintStmt } from "./stmt";
 import { Lox } from "./main";
 import { Token, TokenType } from "./token";
 
@@ -30,7 +31,10 @@ function stringify(value: LoxValue): string {
   return value.toString();
 }
 
-export class Interpreter implements Visitor<LoxValue> {
+export class Interpreter implements Visitor<LoxValue>, StmtVisitor<void> {
+  // ──────────────────────────────────────────────────────────
+  // Expression visitor methods
+  // ──────────────────────────────────────────────────────────
   visitBinary(expr: Binary): LoxValue {
     const left = this.evaluate(expr.left);
     const right = this.evaluate(expr.right);
@@ -99,17 +103,34 @@ export class Interpreter implements Visitor<LoxValue> {
         checkNumberOperand(expr.operator, right);
         return -right;
       case TokenType.BANG:
-        return isTruthy(right);
+        return !isTruthy(right);
     }
 
     return null;
   }
 
-  interpret(expr: Expr): void {
+  // ──────────────────────────────────────────────────────────
+  // Statement visitor methods
+  // ──────────────────────────────────────────────────────────
+  visitExpressionStmt(stmt: ExpressionStmt): void {
+    this.evaluate(stmt.expression);
+    return;
+  }
+
+  visitPrintStmt(stmt: PrintStmt): void {
+    const value = this.evaluate(stmt.expression);
+    console.log(stringify(value));
+    return;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Public interface
+  // ──────────────────────────────────────────────────────────
+  interpret(statements: Stmt[]): void {
     try {
-      const value = this.evaluate(expr);
-      console.log("================");
-      console.log(stringify(value));
+      for (const statement of statements) {
+        this.execute(statement);
+      }
     } catch (error) {
       if (error instanceof RuntimeError) {
         Lox.runtimeError(error);
@@ -119,7 +140,14 @@ export class Interpreter implements Visitor<LoxValue> {
     }
   }
 
+  // ──────────────────────────────────────────────────────────
+  // Private helpers
+  // ──────────────────────────────────────────────────────────
   private evaluate(expr: Expr): LoxValue {
     return expr.accept(this);
+  }
+
+  private execute(stmt: Stmt): void {
+    stmt.accept(this);
   }
 }

@@ -1,17 +1,8 @@
-// this is a comment
-(( )){} // grouping stuff
-!*+-/=<> <= == // operators
-"THIS IS A NEW STRING"
-"THIS IS A 
-MULTILINE
-STRING"
-1.234
-23
-45 56
-777.111
-var something = "hello world"
-var value = 3 or 5
-print value
-while (value) {
-  return something
-}
+print "Hello, World!";
+print 42;
+print 3 + 4;
+print "The answer is " + "42";
+1 + 2;
+print nil;
+print true;
+print false;

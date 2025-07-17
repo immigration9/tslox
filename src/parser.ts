@@ -1,10 +1,14 @@
 // parser.ts
 // Recursive-descent Pratt-style parser for the "Lox" language,
-// ported to TypeScript from Chapter 6 “Parsing Expressions” of
+// ported to TypeScript from Chapter 6 "Parsing Expressions" of
 // Crafting Interpreters.
 //
-// This parser only handles expressions; statement parsing
-// will be added later.
+// Updated to handle statements according to BNF grammar:
+// program ::= statement* EOF ;
+// statement ::= exprStmt | printStmt ;
+// exprStmt ::= expression ";" ;
+// printStmt ::= "print" expression ";" ;
+//
 // It assumes the following supporting types exist:
 //
 //   - enum TokenType  (LEFT_PAREN, RIGHT_PAREN, BANG, BANG_EQUAL,
@@ -18,9 +22,13 @@
 //   - Expression hierarchy generated using the Visitor pattern
 //     (classes Binary, Unary, Grouping, Literal, Expr)
 //
+//   - Statement hierarchy generated using the Visitor pattern
+//     (classes ExpressionStmt, PrintStmt, Stmt)
+//
 // Feel free to tweak the imports to match your project layout.
 import { Token, TokenType } from "./token";
 import * as Expr from "./expr";
+import { Stmt, ExpressionStmt, PrintStmt } from "./stmt";
 
 /**
  * Parser converts a linear sequence of tokens
@@ -33,19 +41,54 @@ export class Parser {
 
   /**
    * Entry point for callers.
+   * Parses a program (sequence of statements).
    * Throws ParseError on any syntax error.
    */
-  public parse(): Expr.Expr {
-    try {
-      return this.expression();
-    } catch (error) {
-      if (error instanceof ParseError) throw error;
-      throw new ParseError("Unknown parsing error.");
+  public parse(): Stmt[] {
+    const statements: Stmt[] = [];
+
+    while (!this.isAtEnd()) {
+      try {
+        statements.push(this.statement());
+      } catch (error) {
+        if (error instanceof ParseError) {
+          this.synchronize();
+          throw error;
+        }
+        throw new ParseError("Unknown parsing error.");
+      }
     }
+
+    return statements;
   }
 
   // ──────────────────────────────────────────────────────────
-  // Grammar (lowest → highest precedence):
+  // Statement Grammar:
+  //
+  // statement ::= exprStmt | printStmt ;
+  // exprStmt ::= expression ";" ;
+  // printStmt ::= "print" expression ";" ;
+  // ──────────────────────────────────────────────────────────
+
+  private statement(): Stmt {
+    if (this.match(TokenType.PRINT)) return this.printStatement();
+    return this.expressionStatement();
+  }
+
+  private printStatement(): Stmt {
+    const value = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after value.");
+    return new PrintStmt(value);
+  }
+
+  private expressionStatement(): Stmt {
+    const expr = this.expression();
+    this.consume(TokenType.SEMICOLON, "Expect ';' after expression.");
+    return new ExpressionStmt(expr);
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Expression Grammar (lowest → highest precedence):
   //
   // expression     → equality ;
   // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -188,6 +231,28 @@ export class Parser {
     return new ParseError(
       `[line ${token.line}] Error at '${token.lexeme}': ${message}`
     );
+  }
+
+  private synchronize(): void {
+    this.advance();
+
+    while (!this.isAtEnd()) {
+      if (this.previous().type === TokenType.SEMICOLON) return;
+
+      switch (this.peek().type) {
+        case TokenType.CLASS:
+        case TokenType.FUN:
+        case TokenType.VAR:
+        case TokenType.FOR:
+        case TokenType.IF:
+        case TokenType.WHILE:
+        case TokenType.PRINT:
+        case TokenType.RETURN:
+          return;
+      }
+
+      this.advance();
+    }
   }
 }
 

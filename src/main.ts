@@ -31,6 +31,9 @@ export class Lox {
       if (this.hadError) {
         process.exit(65);
       }
+      if (this.hadRuntimeError) {
+        process.exit(70);
+      }
     } catch (err) {
       console.error(`Could not read file ${path}:`, err);
       process.exit(65);
@@ -64,12 +67,14 @@ export class Lox {
     const scanner = new Scanner(source);
     const tokens = scanner.scanTokens();
 
-    for (const token of tokens) {
-      console.log(token);
-    }
+    // Stop if there was a lexical error
+    if (this.hadError) return;
 
     const parser = new Parser(tokens);
     const statements = parser.parse();
+
+    // Stop if there was a syntax error
+    if (this.hadError) return;
 
     const interpreter = new Interpreter();
     interpreter.interpret(statements);
