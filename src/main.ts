@@ -9,6 +9,7 @@ import { Interpreter } from "./interpreter";
 export class Lox {
   static hadError: boolean = false;
   static hadRuntimeError: boolean = false;
+  static interpreter: Interpreter = new Interpreter();
 
   static main(): void {
     const args = process.argv.slice(2);
@@ -76,8 +77,7 @@ export class Lox {
     // Stop if there was a syntax error
     if (this.hadError) return;
 
-    const interpreter = new Interpreter();
-    interpreter.interpret(statements);
+    this.interpreter.interpret(statements);
   }
 
   static error(line: number, message: string) {

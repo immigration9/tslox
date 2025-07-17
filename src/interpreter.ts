@@ -6,11 +6,13 @@ import {
   Grouping,
   Literal,
   Unary,
+  VariableExpr,
   Expr,
 } from "./expr";
-import { StmtVisitor, Stmt, ExpressionStmt, PrintStmt } from "./stmt";
+import { StmtVisitor, Stmt, ExpressionStmt, PrintStmt, VarStmt } from "./stmt";
 import { Lox } from "./main";
 import { Token, TokenType } from "./token";
+import { Environment } from "./environment";
 
 function isTruthy(value: LoxValue): boolean {
   if (value === null) return false;
@@ -32,6 +34,8 @@ function stringify(value: LoxValue): string {
 }
 
 export class Interpreter implements Visitor<LoxValue>, StmtVisitor<void> {
+  private environment: Environment = new Environment();
+
   // ──────────────────────────────────────────────────────────
   // Expression visitor methods
   // ──────────────────────────────────────────────────────────
@@ -109,6 +113,10 @@ export class Interpreter implements Visitor<LoxValue>, StmtVisitor<void> {
     return null;
   }
 
+  visitVariableExpr(expr: VariableExpr): LoxValue {
+    return this.environment.get(expr.name);
+  }
+
   // ──────────────────────────────────────────────────────────
   // Statement visitor methods
   // ──────────────────────────────────────────────────────────
@@ -120,6 +128,15 @@ export class Interpreter implements Visitor<LoxValue>, StmtVisitor<void> {
   visitPrintStmt(stmt: PrintStmt): void {
     const value = this.evaluate(stmt.expression);
     console.log(stringify(value));
+    return;
+  }
+
+  visitVarStmt(stmt: VarStmt): void {
+    let value: LoxValue = null;
+    if (stmt.initializer !== null) {
+      value = this.evaluate(stmt.initializer);
+    }
+    this.environment.define(stmt.name.lexeme, value);
     return;
   }
 

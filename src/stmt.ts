@@ -8,11 +8,13 @@
 // where `visitor` is an implementation of the StmtVisitor interface.
 
 import { Expr } from "./expr";
+import { Token } from "./token";
 
 /** Generic StmtVisitor interface (double-dispatch). */
 export interface StmtVisitor<R> {
   visitExpressionStmt(stmt: ExpressionStmt): R;
   visitPrintStmt(stmt: PrintStmt): R;
+  visitVarStmt(stmt: VarStmt): R;
 }
 
 /** Base statement class. */
@@ -41,5 +43,18 @@ export class PrintStmt extends Stmt {
 
   accept<R>(visitor: StmtVisitor<R>): R {
     return visitor.visitPrintStmt(this);
+  }
+}
+
+export class VarStmt extends Stmt {
+  constructor(
+    public readonly name: Token,
+    public readonly initializer: Expr | null
+  ) {
+    super();
+  }
+
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitVarStmt(this);
   }
 }

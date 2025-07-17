@@ -2,13 +2,18 @@ import { AstPrinter } from "./expr";
 import { Parser } from "./parser";
 import { Scanner } from "./scanner";
 
-const source = "(1 + 2) * 3 == 5";
+const source = 'var beverage = "espresso"; print beverage;';
 const scanner = new Scanner(source);
 const tokens = scanner.scanTokens();
 const parser = new Parser(tokens);
-const expression = parser.parse();
+const statements = parser.parse();
 // Walk or pretty-print your AST here
 
-const ast = new AstPrinter().print(expression);
+// Print the tokens and statements for debugging
+console.log("Tokens:");
+tokens.forEach((token, i) => {
+  console.log(`${i}: ${token.toString()}`);
+});
 
-console.log(JSON.stringify(ast, null, 2));
+console.log("\nStatements:");
+console.log(JSON.stringify(statements, null, 2));

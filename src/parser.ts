@@ -4,7 +4,8 @@
 // Crafting Interpreters.
 //
 // Updated to handle statements according to BNF grammar:
-// program ::= statement* EOF ;
+// declaration ::= varDecl | statement ;
+// varDecl ::= "var" IDENTIFIER ( "=" expression )? ";" ;
 // statement ::= exprStmt | printStmt ;
 // exprStmt ::= expression ";" ;
 // printStmt ::= "print" expression ";" ;
@@ -28,7 +29,7 @@
 // Feel free to tweak the imports to match your project layout.
 import { Token, TokenType } from "./token";
 import * as Expr from "./expr";
-import { Stmt, ExpressionStmt, PrintStmt } from "./stmt";
+import { Stmt, ExpressionStmt, PrintStmt, VarStmt } from "./stmt";
 
 /**
  * Parser converts a linear sequence of tokens
@@ -41,7 +42,7 @@ export class Parser {
 
   /**
    * Entry point for callers.
-   * Parses a program (sequence of statements).
+   * Parses a program (sequence of declarations).
    * Throws ParseError on any syntax error.
    */
   public parse(): Stmt[] {
@@ -49,7 +50,7 @@ export class Parser {
 
     while (!this.isAtEnd()) {
       try {
-        statements.push(this.statement());
+        statements.push(this.declaration());
       } catch (error) {
         if (error instanceof ParseError) {
           this.synchronize();
@@ -60,6 +61,28 @@ export class Parser {
     }
 
     return statements;
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Declaration Grammar:
+  //
+  // declaration ::= varDecl | statement ;
+  // varDecl ::= "var" IDENTIFIER ( "=" expression )? ";" ;
+  // ──────────────────────────────────────────────────────────
+
+  private declaration(): Stmt {
+    if (this.match(TokenType.VAR)) return this.varDeclaration();
+    return this.statement();
+  }
+
+  private varDeclaration(): Stmt {
+    const name = this.consume(TokenType.IDENTIFIER, "Expect variable name.");
+    let initializer: Expr.Expr | null = null;
+    if (this.match(TokenType.EQUAL)) {
+      initializer = this.expression();
+    }
+    this.consume(TokenType.SEMICOLON, "Expect ';' after variable declaration.");
+    return new VarStmt(name, initializer);
   }
 
   // ──────────────────────────────────────────────────────────
@@ -98,7 +121,8 @@ export class Parser {
   // unary          → ( "!" | "-" ) unary
   //                | primary ;
   // primary        → NUMBER | STRING | "true" | "false" | "nil"
-  //                | "(" expression ")" ;
+  //                | "(" expression ")"
+  //                | IDENTIFIER ;
   // ──────────────────────────────────────────────────────────
 
   private expression(): Expr.Expr {
@@ -172,6 +196,10 @@ export class Parser {
 
     if (this.match(TokenType.NUMBER, TokenType.STRING)) {
       return new Expr.Literal(this.previous().literal);
+    }
+
+    if (this.match(TokenType.IDENTIFIER)) {
+      return new Expr.VariableExpr(this.previous());
     }
 
     if (this.match(TokenType.LEFT_PAREN)) {

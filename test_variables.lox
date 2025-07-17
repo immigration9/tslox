@@ -1,0 +1,15 @@
+var beverage = "espresso";
+print beverage;
+
+var x = 10;
+var y = 20;
+var sum = x + y;
+print sum;
+
+var greeting = "Hello";
+var name = "World";
+var message = greeting + " " + name;
+print message;
+
+var a;
+print a; 
