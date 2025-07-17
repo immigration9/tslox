@@ -1,0 +1,43 @@
+// Test block scope and variable shadowing
+{
+  var a = "first";
+  print a;    // Should print "first"
+}
+
+{
+  var a = "second";
+  print a;    // Should print "second"
+}
+
+// Test nested blocks
+{
+  var a = "outer";
+  print a;    // Should print "outer"
+  {
+    var b = "inner";
+    print a;  // Should print "outer" (accessing outer variable)
+    print b;  // Should print "inner"
+  }
+  print a;    // Should print "outer"
+  // print b; // Would cause error - b is not defined here
+}
+
+// Test shadowing
+{
+  var a = "global";
+  {
+    var a = "local";
+    print a;  // Should print "local" (shadowing)
+  }
+  print a;    // Should print "global" (back to outer scope)
+}
+
+// Test variable assignment in nested scopes
+{
+  var a = "outer";
+  {
+    a = "modified";  // Assign to outer variable
+    print a;        // Should print "modified"
+  }
+  print a;          // Should print "modified" (was modified in inner scope)
+} 

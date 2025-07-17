@@ -15,6 +15,7 @@ export interface StmtVisitor<R> {
   visitExpressionStmt(stmt: ExpressionStmt): R;
   visitPrintStmt(stmt: PrintStmt): R;
   visitVarStmt(stmt: VarStmt): R;
+  visitBlockStmt(stmt: BlockStmt): R;
 }
 
 /** Base statement class. */
@@ -56,5 +57,15 @@ export class VarStmt extends Stmt {
 
   accept<R>(visitor: StmtVisitor<R>): R {
     return visitor.visitVarStmt(this);
+  }
+}
+
+export class BlockStmt extends Stmt {
+  constructor(public readonly statements: Stmt[]) {
+    super();
+  }
+
+  accept<R>(visitor: StmtVisitor<R>): R {
+    return visitor.visitBlockStmt(this);
   }
 }

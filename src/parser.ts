@@ -29,7 +29,7 @@
 // Feel free to tweak the imports to match your project layout.
 import { Token, TokenType } from "./token";
 import * as Expr from "./expr";
-import { Stmt, ExpressionStmt, PrintStmt, VarStmt } from "./stmt";
+import { Stmt, ExpressionStmt, PrintStmt, VarStmt, BlockStmt } from "./stmt";
 
 /**
  * Parser converts a linear sequence of tokens
@@ -88,14 +88,25 @@ export class Parser {
   // ──────────────────────────────────────────────────────────
   // Statement Grammar:
   //
-  // statement ::= exprStmt | printStmt ;
+  // statement ::= exprStmt | printStmt | block ;
   // exprStmt ::= expression ";" ;
   // printStmt ::= "print" expression ";" ;
+  // block ::= "{" declaration* "}" ;
   // ──────────────────────────────────────────────────────────
 
   private statement(): Stmt {
     if (this.match(TokenType.PRINT)) return this.printStatement();
+    if (this.match(TokenType.LEFT_BRACE)) return new BlockStmt(this.block());
     return this.expressionStatement();
+  }
+
+  private block(): Stmt[] {
+    const statements: Stmt[] = [];
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
+      statements.push(this.declaration());
+    }
+    this.consume(TokenType.RIGHT_BRACE, "Expect '}' after block.");
+    return statements;
   }
 
   private printStatement(): Stmt {

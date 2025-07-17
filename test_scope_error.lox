@@ -1,0 +1,5 @@
+// Test that variables are not accessible outside their block scope
+{
+  var a = "in block";
+}
+print a;  // Should cause error: undefined variable 'a' 

@@ -10,7 +10,14 @@ import {
   AssignExpr,
   Expr,
 } from "./expr";
-import { StmtVisitor, Stmt, ExpressionStmt, PrintStmt, VarStmt } from "./stmt";
+import {
+  StmtVisitor,
+  Stmt,
+  ExpressionStmt,
+  PrintStmt,
+  VarStmt,
+  BlockStmt,
+} from "./stmt";
 import { Lox } from "./main";
 import { Token, TokenType } from "./token";
 import { Environment } from "./environment";
@@ -144,6 +151,21 @@ export class Interpreter implements Visitor<LoxValue>, StmtVisitor<void> {
       value = this.evaluate(stmt.initializer);
     }
     this.environment.define(stmt.name.lexeme, value);
+    return;
+  }
+
+  visitBlockStmt(stmt: BlockStmt): void {
+    // 새로운 지역 Environment 생성 (현재 environment를 부모로 설정)
+    const previousEnv = this.environment;
+    this.environment = new Environment(previousEnv);
+    try {
+      for (const statement of stmt.statements) {
+        this.execute(statement);
+      }
+    } finally {
+      // 블록 실행 후 원래 환경으로 복귀
+      this.environment = previousEnv;
+    }
     return;
   }
 
