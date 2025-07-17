@@ -18,6 +18,7 @@ export interface Visitor<R> {
   visitLiteral(expr: Literal): R;
   visitUnary(expr: Unary): R;
   visitVariableExpr(expr: VariableExpr): R;
+  visitAssignExpr(expr: AssignExpr): R;
 }
 
 /** Base expression class. */
@@ -78,6 +79,15 @@ export class VariableExpr extends Expr {
   }
 }
 
+export class AssignExpr extends Expr {
+  constructor(public readonly name: Token, public readonly value: Expr) {
+    super();
+  }
+  accept<R>(visitor: Visitor<R>): R {
+    return visitor.visitAssignExpr(this);
+  }
+}
+
 // ────────────────────────────────────────────────────────────
 // Utility: Pretty-printer visitor (optional)
 // ────────────────────────────────────────────────────────────
@@ -108,6 +118,10 @@ export class AstPrinter implements Visitor<string> {
 
   visitVariableExpr(expr: VariableExpr): string {
     return expr.name.lexeme;
+  }
+
+  visitAssignExpr(expr: AssignExpr): string {
+    return this.parenthesize("assign", new VariableExpr(expr.name), expr.value);
   }
 
   private parenthesize(name: string, ...exprs: Expr[]): string {

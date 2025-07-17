@@ -1,0 +1,4 @@
+// Test error cases for assignment
+
+// Error: Invalid assignment target
+(1 + 2) = 5; 

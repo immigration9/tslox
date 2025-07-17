@@ -21,4 +21,13 @@ export class Environment {
     }
     throw new RuntimeError(nameToken, `Undefined variable '${lexeme}'.`);
   }
+
+  assign(nameToken: Token, value: LoxValue): void {
+    const lexeme = nameToken.lexeme;
+    if (this.values.has(lexeme)) {
+      this.values.set(lexeme, value);
+    } else {
+      throw new RuntimeError(nameToken, "Undefined variable '" + lexeme + "'.");
+    }
+  }
 }

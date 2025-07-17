@@ -7,6 +7,7 @@ import {
   Literal,
   Unary,
   VariableExpr,
+  AssignExpr,
   Expr,
 } from "./expr";
 import { StmtVisitor, Stmt, ExpressionStmt, PrintStmt, VarStmt } from "./stmt";
@@ -115,6 +116,12 @@ export class Interpreter implements Visitor<LoxValue>, StmtVisitor<void> {
 
   visitVariableExpr(expr: VariableExpr): LoxValue {
     return this.environment.get(expr.name);
+  }
+
+  visitAssignExpr(expr: AssignExpr): LoxValue {
+    const value = this.evaluate(expr.value);
+    this.environment.assign(expr.name, value);
+    return value;
   }
 
   // ──────────────────────────────────────────────────────────

@@ -113,7 +113,9 @@ export class Parser {
   // ──────────────────────────────────────────────────────────
   // Expression Grammar (lowest → highest precedence):
   //
-  // expression     → equality ;
+  // expression     → assignment ;
+  // assignment     → IDENTIFIER "=" assignment
+  //                | equality ;
   // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
   // comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
   // addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
@@ -126,7 +128,25 @@ export class Parser {
   // ──────────────────────────────────────────────────────────
 
   private expression(): Expr.Expr {
-    return this.equality();
+    return this.assignment();
+  }
+
+  private assignment(): Expr.Expr {
+    const expr = this.equality();
+
+    if (this.match(TokenType.EQUAL)) {
+      const equals = this.previous();
+      const value = this.assignment();
+
+      if (expr instanceof Expr.VariableExpr) {
+        const name = expr.name;
+        return new Expr.AssignExpr(name, value);
+      } else {
+        throw this.error(equals, "Invalid assignment target.");
+      }
+    }
+
+    return expr;
   }
 
   private equality(): Expr.Expr {

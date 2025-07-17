@@ -1,0 +1,18 @@
+// Test assignment functionality
+var a = 10;
+print a;
+
+a = 20;
+print a;
+
+// Test chained assignment (right-associative)
+var b;
+var c;
+b = c = 30;
+print b;
+print c;
+
+// Test assignment in expressions
+var d = 40;
+print d = 50;
+print d; 
